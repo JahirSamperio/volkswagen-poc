@@ -15,13 +15,15 @@ import {
   DialogActions,
   Fab
 } from '@mui/material'
-import { Add as AddIcon, Computer, Memory, Delete as DeleteIcon, Speed } from '@mui/icons-material'
+import { Add as AddIcon, Computer, Memory, Delete as DeleteIcon, Speed, Logout } from '@mui/icons-material'
 import { useInstances } from '../context/InstanceContext'
 import LaunchFlow from '../components/LaunchFlow'
 import GpuFlow from '../components/GpuFlow'
+import { useAuth } from '../components/auth/AuthProvider'
 
 function Dashboard() {
   const { instances, terminateInstance, setInstances } = useInstances()
+  const { signOutGlobal } = useAuth()
   const [openLaunchFlow, setOpenLaunchFlow] = useState(false)
   const [openGpuFlow, setOpenGpuFlow] = useState(false)
   const [confirmTerminate, setConfirmTerminate] = useState(null)
@@ -71,15 +73,42 @@ function Dashboard() {
               <Typography variant="h6" component="h3" sx={{ color: '#0F172A', fontWeight: 600 }}>
                 {instance.type}
               </Typography>
-              <IconButton
-                color="error"
-                size="small"
-                onClick={() => setConfirmTerminate({...instance, destroy: true})}
-                disabled={instance.status === 'Terminada'}
-                title="Destruir"
-              >
-                <DeleteIcon />
-              </IconButton>
+              {instance.role === 'Principal' && (
+                <IconButton
+                  size="small"
+                  onClick={() => setConfirmTerminate({...instance, destroy: true})}
+                  disabled={instance.status === 'Terminada'}
+                  title="Destruir"
+                  disableRipple
+                  disableFocusRipple
+                  disableTouchRipple
+                  sx={{
+                    color: '#EF4444',
+                    width: 32,
+                    height: 32,
+                    backgroundColor: 'transparent',
+                    '&:hover': {
+                      backgroundColor: 'rgba(239, 68, 68, 0.08) !important',
+                      color: '#EF4444 !important'
+                    },
+                    '&:focus': {
+                      backgroundColor: 'transparent'
+                    },
+                    '&:active': {
+                      backgroundColor: 'rgba(239, 68, 68, 0.12)'
+                    },
+                    '&:disabled': {
+                      color: '#CBD5E1',
+                      backgroundColor: 'transparent'
+                    },
+                    '& .MuiTouchRipple-root': {
+                      display: 'none'
+                    }
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              )}
             </Box>
             
             <Typography variant="body2" sx={{ color: '#334155' }} gutterBottom>
@@ -129,16 +158,50 @@ function Dashboard() {
               Gestiona tus instancias de renderizado y modelado 3D
             </Typography>
           </Box>
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<AddIcon />}
-            onClick={() => setOpenLaunchFlow(true)}
-            disabled={principalInstances.length > 0}
-            title={principalInstances.length > 0 ? 'Ya tienes una instancia principal activa' : ''}
-          >
-            Lanzar Nueva Instancia
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Button
+              variant="outlined"
+              size="large"
+              startIcon={<Logout />}
+              onClick={signOutGlobal}
+              sx={{ 
+                minWidth: '120px',
+                borderColor: '#64748B',
+                color: '#475569',
+                '&:hover': {
+                  borderColor: '#F43F5E !important',
+                  backgroundColor: 'rgba(244, 63, 94, 0.08) !important',
+                  color: '#F43F5E !important',
+                  '& .MuiTouchRipple-root': {
+                    display: 'none'
+                  }
+                }
+              }}
+            >
+              Cerrar Sesión
+            </Button>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<AddIcon />}
+              onClick={() => setOpenLaunchFlow(true)}
+              disabled={principalInstances.length > 0}
+              title={principalInstances.length > 0 ? 'Ya tienes una instancia principal activa' : ''}
+              sx={{ 
+                minWidth: '180px',
+                '&:hover': {
+                  backgroundImage: 'linear-gradient(135deg, #0F172A, #1E293B)'
+                },
+                '&:disabled': {
+                  backgroundColor: '#94A3B8 !important',
+                  color: '#CBD5E1 !important',
+                  opacity: 0.6
+                }
+              }}
+            >
+              Lanzar Nueva Instancia
+            </Button>
+          </Box>
         </Box>
 
         {activeInstances.length === 0 ? (
@@ -152,8 +215,17 @@ function Dashboard() {
               </Typography>
               <Button
                 variant="contained"
+                size="large"
                 startIcon={<AddIcon />}
                 onClick={() => setOpenLaunchFlow(true)}
+                sx={{ 
+                  minWidth: '180px',
+                  py: 1.5,
+                  fontSize: '1.1rem',
+                  '&:hover': {
+                    backgroundImage: 'linear-gradient(135deg, #0F172A, #1E293B)'
+                  }
+                }}
               >
                 Lanzar Instancia
               </Button>
@@ -163,7 +235,7 @@ function Dashboard() {
           <>
             {principalInstances.length > 0 && (
               <Box sx={{ mb: 4 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 3 }}>
                   <Box>
                     <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1, color: '#334155', textShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
                       <Computer color="primary" />
@@ -173,14 +245,44 @@ function Dashboard() {
                       Servidor principal para tus aplicaciones de modelado y diseño 3D
                     </Typography>
                   </Box>
-                  <Button
+                  <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
+                    <Button
                     variant="outlined"
-                    startIcon={<Memory />}
+                    size="large"
+                    startIcon={<AddIcon />}
                     onClick={() => setOpenGpuFlow(true)}
+                    disabled={gpuInstances.length >= 3}
                     title={gpuInstances.length >= 3 ? 'Ya tienes el máximo de aceleradores permitidos' : ''}
+                    disableRipple
+                    sx={{ 
+                      minWidth: '220px',
+                      borderColor: '#64748B',
+                      color: '#64748B',
+                      borderWidth: '1.5px',
+                      fontWeight: 600,
+                      backgroundColor: 'transparent',
+                      '&:hover': {
+                        borderColor: '#10B981 !important',
+                        backgroundColor: 'rgba(16, 185, 129, 0.08) !important',
+                        color: '#10B981 !important',
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 8px rgba(16, 185, 129, 0.15)'
+                      },
+                      '&:disabled': {
+                        borderColor: '#CBD5E1 !important',
+                        color: '#64748B !important',
+                        backgroundColor: 'transparent !important',
+                        opacity: 0.7,
+                        cursor: 'not-allowed'
+                      },
+                      '& .MuiTouchRipple-root': {
+                        display: 'none'
+                      }
+                    }}
                   >
                     Agregar Acelerador GPU
                   </Button>
+                  </Box>
                 </Box>
                 <Grid container spacing={3}>
                   {principalInstances.map(renderInstanceCard)}
@@ -258,7 +360,22 @@ function Dashboard() {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmTerminate(null)}>
+          <Button 
+            variant="outlined"
+            onClick={() => setConfirmTerminate(null)}
+            sx={{
+              borderColor: '#64748B',
+              color: '#475569',
+              '&:hover': {
+                borderColor: '#475569 !important',
+                backgroundColor: 'rgba(71, 85, 105, 0.08) !important',
+                color: '#334155 !important',
+                '& .MuiTouchRipple-root': {
+                  display: 'none'
+                }
+              }
+            }}
+          >
             Cancelar
           </Button>
           <Button

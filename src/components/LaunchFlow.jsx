@@ -8,7 +8,8 @@ import {
   Typography,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Dialog
 } from '@mui/material'
 // No icons needed
 import InstanceForm from './InstanceForm'
@@ -29,19 +30,36 @@ function LaunchFlow({ onComplete }) {
   const [instanceData, setInstanceData] = useState({
     instanceType: ''
   })
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showValidationError, setShowValidationError] = useState(false)
 
   const handleFormChange = (formData) => {
     setInstanceData(formData)
+    if (formData.instanceType && showValidationError) {
+      setShowValidationError(false)
+    }
   }
 
 
 
-  const handleConfirmDeploy = () => {
+  const handleLaunchClick = () => {
     if (instanceData.instanceType) {
-      addInstances(instanceData, [])
-      onComplete()
-      window.location.href = '/dashboard'
+      setShowValidationError(false)
+      setShowConfirmDialog(true)
+    } else {
+      setShowValidationError(true)
     }
+  }
+
+  const handleConfirmDeploy = () => {
+    addInstances(instanceData, [])
+    setShowConfirmDialog(false)
+    onComplete()
+    window.location.href = '/dashboard'
+  }
+
+  const handleCancelConfirm = () => {
+    setShowConfirmDialog(false)
   }
 
   return (
@@ -80,6 +98,7 @@ function LaunchFlow({ onComplete }) {
                 onNext={handleFormChange}
                 initialData={instanceData}
                 onChange={handleFormChange}
+                showValidationError={showValidationError}
               />
             </Box>
             
@@ -110,22 +129,88 @@ function LaunchFlow({ onComplete }) {
         <Button
           onClick={onComplete}
           variant="outlined"
-          sx={{ mr: 2, borderColor: '#64748B', color: '#334155' }}
+          disableRipple
+          disableFocusRipple
+          disableTouchRipple
+          sx={{ 
+            mr: 2, 
+            borderColor: '#64748B', 
+            color: '#475569',
+            '&:hover': {
+              borderColor: '#475569 !important',
+              backgroundColor: 'rgba(71, 85, 105, 0.08) !important',
+              color: '#334155 !important'
+            },
+            '& .MuiTouchRipple-root': {
+              display: 'none !important'
+            }
+          }}
         >
           Cancelar
         </Button>
         
         <Button
-          onClick={handleConfirmDeploy}
+          onClick={handleLaunchClick}
           color="primary"
           variant="contained"
           size="large"
-          disabled={!instanceData.instanceType || hasPrincipalInstance}
+          // disabled={!instanceData.instanceType || hasPrincipalInstance}
           sx={{ bgcolor: '#1E293B', '&:hover': { bgcolor: '#0F172A' } }}
         >
           {hasPrincipalInstance ? 'No disponible' : 'Lanzar Instancia'}
         </Button>
       </DialogActions>
+
+      {/* Dialog de confirmación */}
+      <Dialog
+        open={showConfirmDialog}
+        onClose={handleCancelConfirm}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ textAlign: 'center', pb: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#334155' }}>
+            Confirmar lanzamiento de instancia
+          </Typography>
+        </DialogTitle>
+        
+        <DialogContent sx={{ textAlign: 'center', py: 3 }}>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            ¿Estás seguro de lanzar la instancia de tipo <strong>"{instanceData.instanceType}"</strong>?
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#64748B' }}>
+            Esta acción creará una nueva instancia de AWS EC2 que generará costos.
+          </Typography>
+        </DialogContent>
+        
+        <DialogActions sx={{ justifyContent: 'center', pb: 3, gap: 2 }}>
+          <Button
+            onClick={handleCancelConfirm}
+            variant="outlined"
+            sx={{ 
+              borderColor: '#64748B', 
+              color: '#475569',
+              '&:hover': {
+                borderColor: '#475569',
+                backgroundColor: 'rgba(71, 85, 105, 0.08)'
+              }
+            }}
+          >
+            Cancelar
+          </Button>
+          
+          <Button
+            onClick={handleConfirmDeploy}
+            variant="contained"
+            sx={{ 
+              bgcolor: '#1E293B', 
+              '&:hover': { bgcolor: '#0F172A' }
+            }}
+          >
+            Sí, lanzar instancia
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }

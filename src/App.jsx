@@ -1,7 +1,10 @@
 import { Routes, Route } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { Box, Typography, CircularProgress } from '@mui/material'
 import CssBaseline from '@mui/material/CssBaseline'
 import { InstanceProvider } from './context/InstanceContext'
+import { AuthProvider, useAuth } from './components/auth/AuthProvider'
+import AuthContainer from './components/auth/AuthContainer'
 import Dashboard from './pages/Dashboard'
 import Launch from './pages/Launch'
 import Summary from './pages/Summary'
@@ -44,7 +47,7 @@ const theme = createTheme({
     },
     divider: '#E2E8F0',
     action: {
-      hover: 'rgba(14, 165, 233, 0.08)'
+      hover: 'rgba(51, 65, 85, 0.06)'
     },
     grey: {
       50: '#F8FAFC',
@@ -212,19 +215,76 @@ const theme = createTheme({
   }
 })
 
+const AppContent = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '100vh',
+          background: 'linear-gradient(to bottom right, #E2E8F0, #F1F5F9)'
+        }}
+      >
+        <CircularProgress 
+          size={60} 
+          thickness={4}
+          sx={{ 
+            color: '#475569',
+            mb: 3
+          }} 
+        />
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: '#334155',
+            fontWeight: 600,
+            mb: 1
+          }}
+        >
+          Cargando panel de control
+        </Typography>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: '#64748B',
+            textAlign: 'center'
+          }}
+        >
+          Preparando tu entorno de trabajo...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!user) {
+    return <AuthContainer />;
+  }
+
+  return (
+    <Routes>
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/launch" element={<Launch />} />
+      <Route path="/summary" element={<Summary />} />
+      <Route path="/" element={<Dashboard />} />
+    </Routes>
+  );
+};
+
 function App() {
   return (
-    <InstanceProvider>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/launch" element={<Launch />} />
-          <Route path="/summary" element={<Summary />} />
-          <Route path="/" element={<Dashboard />} />
-        </Routes>
-      </ThemeProvider>
-    </InstanceProvider>
+    <AuthProvider>
+      <InstanceProvider>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <AppContent />
+        </ThemeProvider>
+      </InstanceProvider>
+    </AuthProvider>
   )
 }
 

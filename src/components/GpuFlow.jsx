@@ -10,7 +10,8 @@ import {
   DialogActions,
   Card,
   CardContent,
-  Chip
+  Chip,
+  Dialog
 } from '@mui/material'
 import { Memory, Speed } from '@mui/icons-material'
 import GpuForm from './GpuForm'
@@ -43,6 +44,7 @@ function GpuFlow({ onComplete }) {
     instanceType: initialInstanceType,
     count: Math.min(remainingSlots, 1) // Limitar el valor inicial según slots disponibles
   })
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   
   // Asegurar que la vista previa se actualice inmediatamente al abrir el modal
   useEffect(() => {
@@ -63,6 +65,12 @@ function GpuFlow({ onComplete }) {
     setFormData(safeData)
   }
 
+  const handleLaunchClick = () => {
+    if (formData.instanceType) {
+      setShowConfirmDialog(true)
+    }
+  }
+
   const handleConfirm = () => {
     const principalInstance = instances.find(inst => inst.role === 'Principal' && inst.status === 'Ejecutándose')
     if (principalInstance && formData.instanceType) {
@@ -74,7 +82,12 @@ function GpuFlow({ onComplete }) {
       
       addGpuInstances(principalInstance.id, gpuInstances)
     }
+    setShowConfirmDialog(false)
     onComplete()
+  }
+
+  const handleCancelConfirm = () => {
+    setShowConfirmDialog(false)
   }
   
   const getGpuType = (instanceType) => {
@@ -186,13 +199,25 @@ function GpuFlow({ onComplete }) {
         <Button
           onClick={onComplete}
           variant="outlined"
-          sx={{ mr: 2, borderColor: '#64748B', color: '#334155' }}
+          sx={{ 
+            mr: 2, 
+            borderColor: '#64748B', 
+            color: '#475569',
+            '&:hover': {
+              borderColor: '#475569 !important',
+              backgroundColor: 'rgba(71, 85, 105, 0.08) !important',
+              color: '#334155 !important',
+              '& .MuiTouchRipple-root': {
+                display: 'none'
+              }
+            }
+          }}
         >
           Cancelar
         </Button>
         
         <Button
-          onClick={handleConfirm}
+          onClick={handleLaunchClick}
           color="primary"
           variant="contained"
           size="large"
@@ -205,6 +230,57 @@ function GpuFlow({ onComplete }) {
           }
         </Button>
       </DialogActions>
+
+      {/* Dialog de confirmación */}
+      <Dialog
+        open={showConfirmDialog}
+        onClose={handleCancelConfirm}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ textAlign: 'center', pb: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#334155' }}>
+            Confirmar lanzamiento de acelerador
+          </Typography>
+        </DialogTitle>
+        
+        <DialogContent sx={{ textAlign: 'center', py: 3 }}>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            ¿Estás seguro de lanzar {formData.count} acelerador{formData.count > 1 ? 'es' : ''} de tipo <strong>"{formData.instanceType}"</strong>?
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#64748B' }}>
+            Esta acción creará {formData.count} nueva{formData.count > 1 ? 's' : ''} instancia{formData.count > 1 ? 's' : ''} GPU de AWS EC2 que generará{formData.count > 1 ? 'n' : ''} costos adicionales.
+          </Typography>
+        </DialogContent>
+        
+        <DialogActions sx={{ justifyContent: 'center', pb: 3, gap: 2 }}>
+          <Button
+            onClick={handleCancelConfirm}
+            variant="outlined"
+            sx={{ 
+              borderColor: '#64748B', 
+              color: '#475569',
+              '&:hover': {
+                borderColor: '#475569',
+                backgroundColor: 'rgba(71, 85, 105, 0.08)'
+              }
+            }}
+          >
+            Cancelar
+          </Button>
+          
+          <Button
+            onClick={handleConfirm}
+            variant="contained"
+            sx={{ 
+              bgcolor: '#1E293B', 
+              '&:hover': { bgcolor: '#0F172A' }
+            }}
+          >
+            Sí, lanzar acelerador{formData.count > 1 ? 'es' : ''}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }

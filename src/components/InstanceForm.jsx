@@ -17,7 +17,7 @@ const instanceTypes = [
   { value: 'p4d.24xlarge', label: 'p4d.24xlarge - 8x NVIDIA A100' }
 ]
 
-function InstanceForm({ onNext, initialData = null, onChange = null }) {
+function InstanceForm({ onNext, initialData = null, onChange = null, showValidationError = false }) {
   const [formData, setFormData] = useState({
     instanceType: initialData?.instanceType || ''
   })
@@ -83,11 +83,28 @@ function InstanceForm({ onNext, initialData = null, onChange = null }) {
         label="Tipo de Instancia GPU"
         value={formData.instanceType}
         onChange={handleFieldChange('instanceType')}
-        error={!!errors.instanceType}
-        helperText={errors.instanceType || 'Selecciona la potencia de GPU que necesitas'}
+        error={!!errors.instanceType || (showValidationError && !formData.instanceType)}
+        helperText={
+          errors.instanceType || 
+          (showValidationError && !formData.instanceType ? 'Debes seleccionar un tipo de instancia' : 'Selecciona la potencia de GPU que necesitas')
+        }
         margin="normal"
         required
-        sx={{ mb: 2 }}
+        sx={{ 
+          mb: 2,
+          '& .MuiOutlinedInput-root': {
+            '&.Mui-error': {
+              '& fieldset': {
+                borderColor: '#F43F5E',
+                borderWidth: '2px'
+              }
+            }
+          },
+          '& .MuiFormHelperText-root.Mui-error': {
+            color: '#F43F5E',
+            fontWeight: 500
+          }
+        }}
       >
         {instanceTypes.map((option) => (
           <MenuItem key={option.value} value={option.value}>
@@ -95,6 +112,12 @@ function InstanceForm({ onNext, initialData = null, onChange = null }) {
           </MenuItem>
         ))}
       </TextField>
+      
+      {showValidationError && !formData.instanceType && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          Por favor selecciona un tipo de instancia antes de continuar
+        </Alert>
+      )}
     </Box>
   )
 }
