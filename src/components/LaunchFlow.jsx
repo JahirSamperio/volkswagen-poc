@@ -9,19 +9,21 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Dialog
+  Dialog,
+  CircularProgress,
+  Alert
 } from '@mui/material'
-// No icons needed
 import InstanceForm from './InstanceForm'
 import GpuSuggestions from './GpuSuggestions'
 import DeploymentSummary from './DeploymentSummary'
+import LoadingScreen from './LoadingScreen'
 import { useInstances } from '../context/InstanceContext'
 
 const title = 'Lanzar Nueva Instancia de AWS EC2'
 const description = 'Configura y lanza tu instancia principal para aplicaciones de diseño'
 
 function LaunchFlow({ onComplete }) {
-  const { addInstances, instances } = useInstances()
+  const { addInstances, instances, loading } = useInstances()
   
   // Verificar si ya existe una instancia principal activa
   const hasPrincipalInstance = instances.some(
@@ -32,6 +34,7 @@ function LaunchFlow({ onComplete }) {
   })
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [showValidationError, setShowValidationError] = useState(false)
+  const [error, setError] = useState(null)
 
   const handleFormChange = (formData) => {
     setInstanceData(formData)
@@ -51,11 +54,17 @@ function LaunchFlow({ onComplete }) {
     }
   }
 
-  const handleConfirmDeploy = () => {
-    addInstances(instanceData, [])
-    setShowConfirmDialog(false)
-    onComplete()
-    window.location.href = '/dashboard'
+  const handleConfirmDeploy = async () => {
+    try {
+      setError(null)
+      await addInstances(instanceData, [])
+      setShowConfirmDialog(false)
+      onComplete()
+      window.location.href = '/dashboard'
+    } catch (err) {
+      setError('Error al lanzar la instancia. Por favor, inténtalo de nuevo.')
+      setShowConfirmDialog(false)
+    }
   }
 
   const handleCancelConfirm = () => {
@@ -64,6 +73,7 @@ function LaunchFlow({ onComplete }) {
 
   return (
     <>
+      {loading && <LoadingScreen message="Lanzando instancia..." />}
       <DialogTitle sx={{ textAlign: 'center', pb: 1, borderBottom: '1px solid', borderColor: 'divider', bgcolor: '#E2E8F0' }}>
         <Typography variant="h5" sx={{ fontWeight: 700, color: '#334155' }}>
           {title}
@@ -154,12 +164,26 @@ function LaunchFlow({ onComplete }) {
           color="primary"
           variant="contained"
           size="large"
-          // disabled={!instanceData.instanceType || hasPrincipalInstance}
+          disabled={!instanceData.instanceType || hasPrincipalInstance || loading}
           sx={{ bgcolor: '#1E293B', '&:hover': { bgcolor: '#0F172A' } }}
         >
-          {hasPrincipalInstance ? 'No disponible' : 'Lanzar Instancia'}
+          {loading ? (
+            <>
+              <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
+              Lanzando...
+            </>
+          ) : hasPrincipalInstance ? 'No disponible' : 'Lanzar Instancia'}
         </Button>
       </DialogActions>
+
+      {/* Error Alert */}
+      {error && (
+        <Box sx={{ p: 2 }}>
+          <Alert severity="error" onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        </Box>
+      )}
 
       {/* Dialog de confirmación */}
       <Dialog
@@ -202,12 +226,18 @@ function LaunchFlow({ onComplete }) {
           <Button
             onClick={handleConfirmDeploy}
             variant="contained"
+            disabled={loading}
             sx={{ 
               bgcolor: '#1E293B', 
               '&:hover': { bgcolor: '#0F172A' }
             }}
           >
-            Sí, lanzar instancia
+            {loading ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
+                Lanzando...
+              </>
+            ) : 'Sí, lanzar instancia'}
           </Button>
         </DialogActions>
       </Dialog>

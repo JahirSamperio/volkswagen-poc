@@ -1,14 +1,7 @@
 import { createContext, useContext, useState } from 'react'
-
-// Función para generar IPs aleatorias
-const generateRandomIp = () => {
-  return [
-    Math.floor(Math.random() * 255) + 1,
-    Math.floor(Math.random() * 255),
-    Math.floor(Math.random() * 255),
-    Math.floor(Math.random() * 255)
-  ].join('.');
-}
+import { instanceService } from '../services/instanceService.js'
+import { cognitoService } from '../services/cognitoService.js'
+import { API_CONFIG } from '../services/config.js'
 
 const InstanceContext = createContext()
 
@@ -21,87 +14,57 @@ export const useInstances = () => {
 }
 
 export const InstanceProvider = ({ children }) => {
-  const [instances, setInstances] = useState([
-    {
-      id: 'i-1234567890abcdef0',
-      type: 'g5.xlarge',
-      region: 'us-east-1 (Virginia)',
-      status: 'Ejecutándose',
-      role: 'Principal',
-      launchedAt: new Date().toISOString(),
-      groupId: 'group-1',
-      ip: '54.205.87.123'
-    },
-    {
-      id: 'i-0987654321fedcba0',
-      type: 'g4dn.xlarge',
-      region: 'us-east-1 (Virginia)',
-      status: 'Ejecutándose',
-      role: 'GPU Ayuda',
-      launchedAt: new Date().toISOString(),
-      groupId: 'group-1',
-      relatedTo: 'i-1234567890abcdef0',
-      ip: '54.167.92.45'
-    },
-    {
-      id: 'i-abcdef1234567890',
-      type: 'p3.2xlarge',
-      region: 'us-east-1 (Virginia)',
-      status: 'Ejecutándose',
-      role: 'GPU Ayuda',
-      launchedAt: new Date().toISOString(),
-      groupId: 'group-1',
-      relatedTo: 'i-1234567890abcdef0',
-      ip: '54.152.31.78'
-    }
-  ])
+  const [instances, setInstances] = useState([])
+  const [loading, setLoading] = useState(false)
 
-  const addInstances = (instanceData, gpuInstances = []) => {
-    // Terminate existing instances first
-    setInstances(prev => prev.map(instance => ({ ...instance, status: 'Terminada' })))
-    
-    const newInstances = []
-    const groupId = `group-${Date.now()}`
-    
-    // Add main instance
-    const mainInstanceId = `i-${Math.random().toString(36).substr(2, 17)}`
-    newInstances.push({
-      id: mainInstanceId,
-      type: instanceData.instanceType,
-      region: 'us-east-1 (Virginia)',
-      status: 'Ejecutándose',
-      role: 'Principal',
-      launchedAt: new Date().toISOString(),
-      groupId,
-      ip: generateRandomIp()
-    })
-
-    // Add GPU instances
-    gpuInstances.forEach(gpu => {
-      newInstances.push({
+  const addInstances = async (instanceData, gpuInstances = []) => {
+    setLoading(true)
+    try {
+      const userId = cognitoService.getUserId() || API_CONFIG.DEFAULT_USER_ID
+      
+      const response = await instanceService.deployInstance(instanceData.instanceType, userId)
+      
+      // Actualizar estado local con la respuesta del backend
+      const newInstance = {
         id: `i-${Math.random().toString(36).substr(2, 17)}`,
-        type: gpu.type,
+        type: instanceData.instanceType,
         region: 'us-east-1 (Virginia)',
         status: 'Ejecutándose',
-        role: 'GPU Ayuda',
+        role: 'Principal',
         launchedAt: new Date().toISOString(),
-        groupId,
-        relatedTo: mainInstanceId,
-        ip: generateRandomIp()
-      })
-    })
-
-    setInstances(prev => [...prev, ...newInstances])
+        groupId: `group-${Date.now()}`,
+        ip: response.instanceDNS?.[0] || 'Pendiente'
+      }
+      
+      setInstances(prev => [...prev, newInstance])
+    } catch (error) {
+      console.error('Error deploying instance:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const terminateInstance = (instanceId) => {
-    setInstances(prev => 
-      prev.map(instance => 
-        instance.id === instanceId 
-          ? { ...instance, status: 'Terminada' }
-          : instance
+  const terminateInstance = async (instanceId) => {
+    setLoading(true)
+    try {
+      const userId = cognitoService.getUserId() || API_CONFIG.DEFAULT_USER_ID
+      
+      await instanceService.destroyInstance(userId)
+      
+      setInstances(prev => 
+        prev.map(instance => 
+          instance.id === instanceId 
+            ? { ...instance, status: 'Terminada' }
+            : instance
+        )
       )
-    )
+    } catch (error) {
+      console.error('Error destroying instance:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
   }
 
   const addGpuInstances = (principalInstanceId, gpuInstances) => {
@@ -115,7 +78,7 @@ export const InstanceProvider = ({ children }) => {
       launchedAt: new Date().toISOString(),
       groupId,
       relatedTo: principalInstanceId,
-      ip: generateRandomIp()
+      ip: 'Pendiente'
     }))
     
     setInstances(prev => [...prev, ...newGpuInstances])
@@ -127,7 +90,8 @@ export const InstanceProvider = ({ children }) => {
       addInstances,
       terminateInstance,
       addGpuInstances,
-      setInstances
+      setInstances,
+      loading
     }}>
       {children}
     </InstanceContext.Provider>

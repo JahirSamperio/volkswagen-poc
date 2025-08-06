@@ -9,6 +9,7 @@ import {
 } from '@mui/material'
 
 const instanceTypes = [
+  { value: 't3.medium', label: 't3.medium - Uso General' },
   { value: 'g4dn.xlarge', label: 'g4dn.xlarge - NVIDIA T4' },
   { value: 'g4dn.2xlarge', label: 'g4dn.2xlarge - NVIDIA T4' },
   { value: 'g5.xlarge', label: 'g5.xlarge - NVIDIA A10G' },

@@ -13,36 +13,50 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Fab
+  Fab,
+  CircularProgress,
+  Alert
 } from '@mui/material'
 import { Add as AddIcon, Computer, Memory, Delete as DeleteIcon, Speed, Logout } from '@mui/icons-material'
 import { useInstances } from '../context/InstanceContext'
 import LaunchFlow from '../components/LaunchFlow'
 import GpuFlow from '../components/GpuFlow'
+import LoadingScreen from '../components/LoadingScreen'
 import { useAuth } from '../components/auth/AuthProvider'
 
 function Dashboard() {
-  const { instances, terminateInstance, setInstances } = useInstances()
+  const { instances, terminateInstance, setInstances, loading } = useInstances()
   const { signOutGlobal } = useAuth()
   const [openLaunchFlow, setOpenLaunchFlow] = useState(false)
   const [openGpuFlow, setOpenGpuFlow] = useState(false)
   const [confirmTerminate, setConfirmTerminate] = useState(null)
+  const [error, setError] = useState(null)
+  const [loadingMessage, setLoadingMessage] = useState('Procesando...')
 
-  const handleTerminate = (instanceId) => {
-    // Verificar si es una instancia principal
-    const instanceToDelete = instances.find(inst => inst.id === instanceId)
-    
-    if (instanceToDelete && instanceToDelete.role === 'Principal') {
-      // Si es principal, eliminar también todas las instancias GPU relacionadas
-      setInstances(prev => prev.filter(instance => 
-        instance.id !== instanceId && instance.relatedTo !== instanceId
-      ))
-    } else {
-      // Si es GPU, solo eliminar esa instancia
-      setInstances(prev => prev.filter(instance => instance.id !== instanceId))
+  const handleTerminate = async (instanceId) => {
+    try {
+      setError(null)
+      setLoadingMessage('Destruyendo instancia...')
+      await terminateInstance(instanceId)
+      
+      // Verificar si es una instancia principal
+      const instanceToDelete = instances.find(inst => inst.id === instanceId)
+      
+      if (instanceToDelete && instanceToDelete.role === 'Principal') {
+        // Si es principal, eliminar también todas las instancias GPU relacionadas
+        setInstances(prev => prev.filter(instance => 
+          instance.id !== instanceId && instance.relatedTo !== instanceId
+        ))
+      } else {
+        // Si es GPU, solo eliminar esa instancia
+        setInstances(prev => prev.filter(instance => instance.id !== instanceId))
+      }
+      
+      setConfirmTerminate(null)
+    } catch (err) {
+      setError('Error al destruir la instancia. Por favor, inténtalo de nuevo.')
+      setConfirmTerminate(null)
     }
-    
-    setConfirmTerminate(null)
   }
 
   const getStatusColor = (status) => {
@@ -77,7 +91,7 @@ function Dashboard() {
                 <IconButton
                   size="small"
                   onClick={() => setConfirmTerminate({...instance, destroy: true})}
-                  disabled={instance.status === 'Terminada'}
+                  disabled={instance.status === 'Terminada' || loading}
                   title="Destruir"
                   disableRipple
                   disableFocusRipple
@@ -106,7 +120,7 @@ function Dashboard() {
                     }
                   }}
                 >
-                  <DeleteIcon fontSize="small" />
+                  {loading ? <CircularProgress size={16} /> : <DeleteIcon fontSize="small" />}
                 </IconButton>
               )}
             </Box>
@@ -138,7 +152,7 @@ function Dashboard() {
               Región: {instance.region}
             </Typography>
             <Typography variant="body2" sx={{ color: '#334155', mt: 1 }}>
-              IP: {instance.ip}
+              DNS: {instance.ip}
             </Typography>
           </CardContent>
         </Card>
@@ -148,7 +162,16 @@ function Dashboard() {
 
   return (
     <Container maxWidth="lg">
+      {loading && <LoadingScreen message={loadingMessage} />}
         <Box sx={{ mt: 4 }}>
+        {/* Error Alert */}
+        {error && (
+          <Box sx={{ mb: 3 }}>
+            <Alert severity="error" onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          </Box>
+        )}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Box>
             <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', background: 'linear-gradient(135deg, #334155, #64748B)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textShadow: '0 2px 4px rgba(0, 0, 0, 0.05)' }}>
@@ -382,8 +405,14 @@ function Dashboard() {
             onClick={() => handleTerminate(confirmTerminate.id)}
             color="error"
             variant="contained"
+            disabled={loading}
           >
-            Destruir
+            {loading ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
+                Destruyendo...
+              </>
+            ) : 'Destruir'}
           </Button>
         </DialogActions>
       </Dialog>
