@@ -35,7 +35,7 @@ function Dashboard() {
   const [openGpuFlow, setOpenGpuFlow] = useState(false)
   const [confirmTerminate, setConfirmTerminate] = useState(null)
   const [error, setError] = useState(null)
-  const [loadingMessage, setLoadingMessage] = useState('Procesando...')
+  const [loadingMessage, setLoadingMessage] = useState('Creando instancia... Esto puede tardar unos minutos.')
 
   const handleTerminate = async (instanceId) => {
     try {
