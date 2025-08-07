@@ -30,7 +30,8 @@ export const instanceService = {
   },
 
   async getUserResources(userId = API_CONFIG.DEFAULT_USER_ID) {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USER_RESOURCES}/${userId}`, {
+    // const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USER_RESOURCES}/${userId}`, {
+    const response = await fetch(`/api/v1${API_CONFIG.ENDPOINTS.USER_RESOURCES}/${userId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
