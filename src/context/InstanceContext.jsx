@@ -17,6 +17,53 @@ export const InstanceProvider = ({ children }) => {
   const [instances, setInstances] = useState([])
   const [loading, setLoading] = useState(false)
 
+  const loadUserInstances = async () => {
+    setLoading(true)
+    try {
+      const userId = cognitoService.getUserId() || API_CONFIG.DEFAULT_USER_ID
+      const response = await instanceService.getUserResources(userId)
+      
+      const mappedInstances = response.instances.map(instance => {
+        const getStatus = (state) => {
+          switch (state) {
+            case 'running': return 'Ejecutándose'
+            case 'pending': return 'Pendiente'
+            case 'stopping': return 'Deteniendo'
+            case 'stopped': return 'Detenida'
+            case 'terminated': return 'Terminada'
+            default: return 'Desconocido'
+          }
+        }
+        
+        const getRole = (hierarchy) => {
+          switch (hierarchy) {
+            case 'principal': return 'Principal'
+            case 'help': return 'GPU Ayuda'
+            default: return 'Desconocido'
+          }
+        }
+        
+        return {
+          id: instance.InstanceId,
+          type: instance.Name,
+          region: 'us-east-1 (Virginia)',
+          status: getStatus(instance.State),
+          role: getRole(instance.hierarchy),
+          launchedAt: instance.LaunchTime,
+          groupId: `group-${Date.now()}`,
+          ip: instance.PrivateIp
+        }
+      })
+      
+      setInstances(mappedInstances)
+    } catch (error) {
+      console.error('Error loading user instances:', error)
+      // No lanzar error para no bloquear la UI
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const addInstances = async (instanceData, gpuInstances = []) => {
     setLoading(true)
     try {
@@ -25,21 +72,43 @@ export const InstanceProvider = ({ children }) => {
       const response = await instanceService.deployInstance(instanceData.instanceType, userId)
       
       // Actualizar estado local con la respuesta del backend
+      const getStatus = (state) => {
+        switch (state) {
+          case 'running': return 'Ejecutándose'
+          case 'pending': return 'Pendiente'
+          case 'stopping': return 'Deteniendo'
+          case 'stopped': return 'Detenida'
+          case 'terminated': return 'Terminada'
+          default: return 'Desconocido'
+        }
+      }
+      
+      const getRole = (hierarchy) => {
+        switch (hierarchy) {
+          case 'principal': return 'Principal'
+          case 'help': return 'GPU Ayuda'
+          default: return 'Desconocido'
+        }
+      }
+      
       const newInstance = {
-        id: `i-${Math.random().toString(36).substr(2, 17)}`,
-        type: instanceData.instanceType,
+        id: response.InstanceId,
+        type: response.Name,
         region: 'us-east-1 (Virginia)',
-        status: 'Ejecutándose',
-        role: 'Principal',
-        launchedAt: new Date().toISOString(),
+        status: getStatus(response.State),
+        role: getRole(response.hierarchy),
+        launchedAt: response.LaunchTime,
         groupId: `group-${Date.now()}`,
-        ip: response.instanceDNS?.[0] || 'Pendiente'
+        ip: response.PrivateIp
       }
       
       setInstances(prev => [...prev, newInstance])
+      
+      // Recargar instancias después del despliegue
+      await loadUserInstances()
     } catch (error) {
       console.error('Error deploying instance:', error)
-      throw error
+      throw new Error(error.message || 'Error al desplegar la instancia')
     } finally {
       setLoading(false)
     }
@@ -61,7 +130,7 @@ export const InstanceProvider = ({ children }) => {
       )
     } catch (error) {
       console.error('Error destroying instance:', error)
-      throw error
+      throw new Error(error.message || 'Error al terminar la instancia')
     } finally {
       setLoading(false)
     }
@@ -91,7 +160,8 @@ export const InstanceProvider = ({ children }) => {
       terminateInstance,
       addGpuInstances,
       setInstances,
-      loading
+      loading,
+      loadUserInstances
     }}>
       {children}
     </InstanceContext.Provider>

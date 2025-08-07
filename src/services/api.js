@@ -10,10 +10,12 @@ export const apiClient = {
       body: JSON.stringify(data),
     })
     
+    const result = await response.json()
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      throw new Error(result.message || `HTTP error! status: ${response.status}`)
     }
     
-    return response.json()
+    return result
   }
 }

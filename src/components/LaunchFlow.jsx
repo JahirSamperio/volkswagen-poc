@@ -73,7 +73,7 @@ function LaunchFlow({ onComplete }) {
 
   return (
     <>
-      {loading && <LoadingScreen message="Lanzando instancia..." />}
+      {loading && <LoadingScreen message="Desplegando instancia EC2... Por favor espere, esto puede demorar algunos minutos." />}
       <DialogTitle sx={{ textAlign: 'center', pb: 1, borderBottom: '1px solid', borderColor: 'divider', bgcolor: '#E2E8F0' }}>
         <Typography variant="h5" sx={{ fontWeight: 700, color: '#334155' }}>
           {title}
@@ -170,7 +170,7 @@ function LaunchFlow({ onComplete }) {
           {loading ? (
             <>
               <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
-              Lanzando...
+              Desplegando...
             </>
           ) : hasPrincipalInstance ? 'No disponible' : 'Lanzar Instancia'}
         </Button>
@@ -235,7 +235,7 @@ function LaunchFlow({ onComplete }) {
             {loading ? (
               <>
                 <CircularProgress size={20} sx={{ mr: 1, color: 'white' }} />
-                Lanzando...
+                Desplegando...
               </>
             ) : 'Sí, lanzar instancia'}
           </Button>

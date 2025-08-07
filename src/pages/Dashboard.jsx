@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Container,
   Typography,
@@ -25,7 +25,11 @@ import LoadingScreen from '../components/LoadingScreen'
 import { useAuth } from '../components/auth/AuthProvider'
 
 function Dashboard() {
-  const { instances, terminateInstance, setInstances, loading } = useInstances()
+  const { instances, terminateInstance, setInstances, loading, loadUserInstances } = useInstances()
+  
+  useEffect(() => {
+    loadUserInstances()
+  }, [])
   const { signOutGlobal } = useAuth()
   const [openLaunchFlow, setOpenLaunchFlow] = useState(false)
   const [openGpuFlow, setOpenGpuFlow] = useState(false)
@@ -36,7 +40,7 @@ function Dashboard() {
   const handleTerminate = async (instanceId) => {
     try {
       setError(null)
-      setLoadingMessage('Destruyendo instancia...')
+      setLoadingMessage('Terminando instancia EC2... Por favor espere, esto puede demorar algunos minutos.')
       await terminateInstance(instanceId)
       
       // Verificar si es una instancia principal

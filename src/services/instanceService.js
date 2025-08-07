@@ -27,5 +27,22 @@ export const instanceService = {
     }
     
     return apiClient.post(API_CONFIG.ENDPOINTS.DESTROY, destroyData)
+  },
+
+  async getUserResources(userId = API_CONFIG.DEFAULT_USER_ID) {
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USER_RESOURCES}/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    
+    const result = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(result.message || `HTTP error! status: ${response.status}`)
+    }
+    
+    return result
   }
 }
