@@ -2,7 +2,8 @@ import { API_CONFIG } from './config.js'
 
 export const apiClient = {
   async post(endpoint, data) {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
+    // const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
+    const response = await fetch(`/api/v1${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
