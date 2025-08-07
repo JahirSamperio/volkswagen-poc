@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: 'http://172.50.66.153:3000/api/v1',
+  BASE_URL: 'https://172.50.66.153:3000/api/v1',
   ENDPOINTS: {
     DEPLOY: '/deploy',
     DESTROY: '/destroy'
